@@ -1,7 +1,40 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const TIEMPO_POR_PERSONA = 3.5;
-const TIMEOUT_INACTIVO = 3 * 60 * 60 * 1000;
+const TIEMPO_POR_PERSONA = 0.208; // 12.5 segundos en minutos
+const CARRERAS_PREGRADO = [
+  "Ingeniería de Sistemas",
+  "Ingeniería Civil",
+  "Ingeniería Electrónica",
+  "Ingeniería Mecánica",
+  "Ingeniería Industrial",
+  "ingeniería mecatrónica",
+  "Administración de Empresas",
+  
+  "Contaduría Pública",
+  "Derecho",
+  "Psicología",
+  "Medicina",
+  "Enfermería",
+  "Arquitectura",
+  "Diseño Gráfico",
+  "Comunicación Social",
+  "Educación",
+  "Matemáticas",
+  "Física",
+  "Química",
+  "Biología",
+  "Historia",
+  "Filosofía",
+  "Literatura",
+  "Idiomas",
+  "Economía",
+  "Sociología",
+  "Antropología",
+  "Geografía",
+  "Ciencias Políticas",
+  "Relaciones Internacionales",
+  "Trabajo Social"
+];
 
 const supabase = {
   from: (table) => ({
@@ -590,6 +623,7 @@ function LoginPage({ onLogin, onRegister }) {
 function RegisterPage({ onSuccess, onBack }) {
   const [step, setStep] = useState(1);
   const [tipo, setTipo] = useState("");
+  const [carrera, setCarrera] = useState("");
   const [datos, setDatos] = useState({ nombre: "", telefono: "", correo: "", id: "" });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -603,6 +637,7 @@ function RegisterPage({ onSuccess, onBack }) {
     if (!datos.nombre.trim()) e.nombre = "Campo requerido";
     if (!datos.telefono.trim()) e.telefono = "Campo requerido";
     if (!tipo) e.tipo = "Selecciona un tipo";
+    if (tipo === "Carreras de Pregrado" && !carrera) e.carrera = "Selecciona una carrera";
     if (!datos.correo.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.correo)) e.correo = "Correo inválido";
     if (!datos.id.trim()) e.id = "Campo requerido";
     setErrors(e);
@@ -613,7 +648,7 @@ function RegisterPage({ onSuccess, onBack }) {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    const nuevo = { id: parseInt(datos.id), nombre: datos.nombre.toUpperCase().trim(), carrera: tipo, telefono: datos.telefono.trim(), correo: datos.correo.toLowerCase().trim(), rol: "ESTUDIANTE", created_at: new Date().toISOString() };
+    const nuevo = { id: parseInt(datos.id), nombre: datos.nombre.toUpperCase().trim(), carrera: tipo === "Carreras de Pregrado" ? carrera : tipo, telefono: datos.telefono.trim(), correo: datos.correo.toLowerCase().trim(), rol: "ESTUDIANTE", created_at: new Date().toISOString() };
     const { error } = await supabase.from("estudiantes").insert([nuevo]);
     if (error) { mostrar(error.message, "error"); } else { setUsuario(nuevo); setStep(2); }
     setLoading(false);
@@ -677,10 +712,20 @@ function RegisterPage({ onSuccess, onBack }) {
             <div className="field">
               <label className="field-label">Tipo de estudio *</label>
               <div className="type-btns">
-                <button type="button" className={`type-btn${tipo === "Carreras de Pregrado" ? " active" : ""}`} onClick={() => { setTipo("Carreras de Pregrado"); setErrors((p) => ({ ...p, tipo: "" })); }}>📚 Carreras de Pregrado</button>
+                <button type="button" className={`type-btn${tipo === "Carreras de Pregrado" ? " active" : ""}`} onClick={() => { setTipo("Carreras de Pregrado"); setCarrera(""); setErrors((p) => ({ ...p, tipo: "", carrera: "" })); }}>📚 Carreras de Pregrado</button>
               </div>
               {errors.tipo && <span className="field-err">{errors.tipo}</span>}
             </div>
+            {tipo === "Carreras de Pregrado" && (
+              <div className="field">
+                <label className="field-label">Selecciona tu carrera *</label>
+                <select className={`input${errors.carrera ? " input-error" : ""}`} value={carrera} onChange={(e) => { setCarrera(e.target.value); setErrors((p) => ({ ...p, carrera: "" })); }}>
+                  <option value="">Selecciona una carrera</option>
+                  {CARRERAS_PREGRADO.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                {errors.carrera && <span className="field-err">{errors.carrera}</span>}
+              </div>
+            )}
             <div className="field">
               <label className="field-label">Correo electrónico *</label>
               <input className={`input${errors.correo ? " input-error" : ""}`} name="correo" type="email" placeholder="Ej. juan@unipamplona.edu.co" value={datos.correo} onChange={cambiar} />
@@ -746,8 +791,8 @@ function MenuPage({ usuario, setVista }) {
           </div>
           <div className="quick-stat">
             <div className="qs-label">Tiempo estimado</div>
-            <div className="qs-value">{Math.round(filaActiva.length * TIEMPO_POR_PERSONA)}</div>
-            <div className="qs-sub">minutos de espera</div>
+            <div className="qs-value">{Math.round(filaActiva.length * TIEMPO_POR_PERSONA * 60)}</div>
+            <div className="qs-sub">segundos de espera</div>
           </div>
         </div>
       </div>
@@ -760,6 +805,7 @@ function QueuePage({ usuario, setVista }) {
   const { filaActiva, miEntrada, posicion, tiempoEstimado, refrescar } = useFila(usuario.id);
   const { alerta, mostrar } = useAlerta();
   const [loading, setLoading] = useState(false);
+  const [escaneado, setEscaneado] = useState(false);
   const [segs, setSegs] = useState(tiempoEstimado * 60);
   useEffect(() => { setSegs(tiempoEstimado * 60); }, [tiempoEstimado]);
   useEffect(() => { if (!posicion || segs <= 0) return; const t = setInterval(() => setSegs((s) => Math.max(0, s - 1)), 1000); return () => clearInterval(t); }, [posicion, segs]);
@@ -820,6 +866,14 @@ function QueuePage({ usuario, setVista }) {
                 <div className="notice-title"><span>⚠️</span> Aviso importante</div>
                 <p>Permanece atento a tu posición. Si no te presentas cuando sea tu turno, perderás tu lugar en la fila y deberás volver a registrarte.</p>
                 <div className="divider" />
+                <div className="sec-title" style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>Próximos en fila</div>
+                {filaActiva.slice(0, 5).map((u, i) => (
+                  <div className="info-row" key={u.id} style={{ fontSize: "0.8rem" }}>
+                    <span className="info-k">#{i + 1}</span>
+                    <span className="info-v">{u.nombre} ({u.id})</span>
+                  </div>
+                ))}
+                <div className="divider" />
                 <div className="info-row"><span className="info-k">Tu documento</span><span className="info-v mono">{usuario.id}</span></div>
                 <div className="info-row"><span className="info-k">Nombre</span><span className="info-v">{usuario.nombre}</span></div>
                 <div className="info-row" style={{ borderBottom: "none" }}><span className="info-k">Programa</span><span className="info-v">{usuario.carrera}</span></div>
@@ -840,9 +894,18 @@ function QueuePage({ usuario, setVista }) {
               <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
                 {miEntrada?.estado === "SALIO" ? "Saliste de la fila. ¿Deseas volver a ingresar?" : "No estás en la fila. ¡Toma tu turno ahora!"}
               </p>
-              <button className="btn btn-navy btn-block" onClick={ingresar} disabled={loading}>
-                {loading ? "Ingresando..." : "🚶 Ingresar a la fila"}
-              </button>
+              <div className="barcode-outer" style={{ marginBottom: "1rem" }}>
+                <Barcode id={usuario.id} height={60} />
+              </div>
+              {!escaneado ? (
+                <button className="btn btn-orange btn-block" onClick={() => setEscaneado(true)}>
+                  📱 Escanear código de barras
+                </button>
+              ) : (
+                <button className="btn btn-navy btn-block" onClick={ingresar} disabled={loading}>
+                  {loading ? "Ingresando..." : "🚶 Ingresar a la fila"}
+                </button>
+              )}
             </div>
             <QueuePanel filaActiva={filaActiva} miId={null} />
           </div>
