@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/COMET/static/css/main.e6c13ad2.css",
+    "main.js": "/COMET/static/js/main.1ee15331.js",
+    "static/js/453.e2449a1b.chunk.js": "/COMET/static/js/453.e2449a1b.chunk.js",
+    "index.html": "/COMET/index.html",
+    "main.e6c13ad2.css.map": "/COMET/static/css/main.e6c13ad2.css.map",
+    "main.1ee15331.js.map": "/COMET/static/js/main.1ee15331.js.map",
+    "453.e2449a1b.chunk.js.map": "/COMET/static/js/453.e2449a1b.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.1ee15331.js"
+  ]
+}
